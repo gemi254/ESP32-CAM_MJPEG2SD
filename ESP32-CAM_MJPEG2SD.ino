@@ -116,6 +116,8 @@ static void prepCam() {
 }
 
 void setup() { 
+  //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  
   logSetup();
   LOG_INF("=============== Starting ===============");
   if (!psramFound()) sprintf(startupFailure, "Startup Failure: Need PSRAM to be enabled");

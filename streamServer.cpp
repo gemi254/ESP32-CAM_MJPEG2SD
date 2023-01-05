@@ -108,6 +108,9 @@ static esp_err_t streamHandler(httpd_req_t* req) {
         if (!jpgLen) res = ESP_FAIL;
       } else {
         // stream from camera
+#ifdef USE_WEBSOCKET_SERVER
+        xSemaphoreTake(frameMutex, portMAX_DELAY); 
+#endif
         fb = esp_camera_fb_get();
         if (fb == NULL) return ESP_FAIL;
         jpgLen = fb->len;
@@ -130,6 +133,9 @@ static esp_err_t streamHandler(httpd_req_t* req) {
       }
       xSemaphoreGive(motionMutex);
       if (fb != NULL) esp_camera_fb_return(fb);
+#ifdef USE_WEBSOCKET_SERVER      
+      xSemaphoreGive(frameMutex);
+#endif       
       fb = NULL;  
       mjpegKB += jpgLen / 1024;
       if (res != ESP_OK) break;

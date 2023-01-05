@@ -76,6 +76,8 @@ detectNumBands:10:1:Total num of detection bands
 detectStartBand:3:1:Top band where motion is checked
 detectEndBand:8:1:Bottom band where motion is checked
 detectChangeThreshold:15:1:Pixel difference to indicate change
+websocket_ip::7:Websocket surveillance server ip to connect
+websocket_port:0:7:Websocket server port 
 smtpUse:0:2:Enable email sending (0/1)
 smtpFrame:5:2:Frame number image sent in email
 smtpMaxEmails:10:2:Max daily emails

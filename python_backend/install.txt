@@ -1,0 +1,14 @@
+On you server you must install python3 and pip.
+PIP is a package management system used to install and manage software packages/libraries written in Python
+Once you installed pip run the following commands to install required packages/libraries
+
+pip install tornado==4.2
+pip install numpy
+pip install imutils
+pip install scikit-build
+pip install opencv-python
+
+
+Alternative you can install the packages according to the configuration file running the command
+
+pip install -r requirements.txt

@@ -1,0 +1,36 @@
+.video {
+    border-style: solid;
+    border-color: #000;
+    border-width: 1px;    
+}
+
+.center {
+    align-content: center;
+    margin: auto;
+    width: 60%;
+    padding: 10px;
+}
+
+.title {
+    text-align: center;
+    text-transform: uppercase;
+    color: #EEEEEE;
+    padding: 10px;
+}
+
+p {
+    text-indent: 50px;
+    text-align: center;
+    letter-spacing: 2px;
+    text-emphasis-position: inherit;
+    font-size: 20px;
+    color: #EEEEEE;
+    padding: 10px;
+}
+select{
+	height:25px;
+}
+.btn.btn-primary.my {
+    font-size:20px;
+    padding:10px;
+}

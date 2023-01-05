@@ -1,0 +1,11 @@
+Defaults|framesize=7;fps=5;dbgVerbose=1;enableMotion=0;socketFps=0;
+High bandwidth no motion|framesize=8;fps=5;dbgVerbose=1;enableMotion=0;socketFps=0;
+Medium bandwidth no motion|framesize=7;fps=10;enableMotion=0
+Low bandwidth with motion|framesize=5;fps=15;socketFps=2;enableMotion=1
+Full quality|framesize=13;fps=1;socketFps=0;enableMotion=0
+Enable motion detect|enableMotion=1
+Disable motion detect|enableMotion=0
+Timelapse on|timeLapseOn=1
+Timelapse off|timeLapseOn=0
+Debug verbose on |dbgVerbose=1
+Debug verbose off |dbgVerbose=0

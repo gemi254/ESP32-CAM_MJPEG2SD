@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Surveillance</title>
+<link rel="stylesheet" type="text/css" href="css/main.css">
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="css/bootstrap-theme.min.css">
+<link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css">
+<script src="/js/jquery.min.js"></script>
+<script src="/js/jquery-ui.min.js"></script>
+<script src="/js/main.js" ></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/bootstrap-checkbox.min.js"></script>
+</head>
+
+<style>
+ul {
+    list-style: none;
+}
+li {
+    text-align: left;
+    float: left;
+    position: relative;
+}
+.wrapper{
+    display: flex;
+}
+.camera{
+	text-align: center;
+	padding: 1px;
+}
+.info{
+	text-align: center;
+	padding: 2px;
+}
+
+.ui-helper-hidden-accessible 	{ display: none; }
+.ui-menu .ui-menu-item-wrapper	{ white-space: pre-wrap; }
+.ui-widget.ui-widget-content	{ width: 30px; }
+</style>
+<body>
+<h4 class="title" align="center">ESP32-CAM_MJPEG2SD Remote Video Surveillance</h4>
+
+<center>
+<input type="button" value="Edit" id="btEdit">
+<div id="presets_edit" style="display:none">
+	<textarea id="presets" cols="100" rows="10"></textarea>
+	<br>
+	<input type="button" value="Save" id="btSave">
+</div>
+<select id="presetsAll" class="presets_ctrl"><option value="">-- Please select --</option></select>
+<input type="text" id="cmdAll" size="50" placeholder="Remote query to all clients" class="presets_ctrl">
+<input type="button" value="Send" id="btSend" class="presets_ctrl">
+</center>
+<hr>
+
+
+<div class="wrapper">
+  	{% if clientsNum == 0 %}
+  	<div class="msg center">
+	  	<h4 style="text-align: center;">No clients connected</h4>
+  	</div>
+  	{% else %}
+    {% set i = 0 %}
+    {% for deviceId in deviceIds %}
+ 	<div class="camera">
+	      <img id="vid_{{ deviceId }}" class="video" title="{{ deviceId }}" src="{{url + deviceId}}"><br />
+	      <!-- <a href="#" class="btn btn-primary my" id="info_{{ deviceId }}">Info</a> -->
+	      <div class="info">
+	    	<input type="button" value="Pause" id="pause_{{ deviceId }}">
+	    	<select id="framesize_{{ deviceId }}" class="default-action">
+	             <option value="13">UXGA(1600x1200)</option>
+	             <option value="12">SXGA(1280x1024)</option>
+	             <option value="11">HD(1280x720)</option>
+	             <option value="10">XGA(1024x768)</option>
+	             <option value="9" selected="selected">SVGA(800x600)</option> 
+	             <option value="8">VGA(640x480)</option> 
+	             <option value="7">HVGA(480x320)</option>
+	             <option value="6">CIF(400x296)</option> 
+	             <option value="5">QVGA(320x240)</option>
+	             <option value="4">240X240</option> 
+	             <option value="3">HQVGA(240x176)</option> 
+	             <option value="2">QCIF(176x144)</option> 
+	             <option value="1">QQVGA(160x120)</option> 
+	             <option value="0">96X96</option>
+	         </select>
+          	 <input type="text" id="cmd_{{ deviceId }}" size="20" placeholder="Remote query" class="default-action">
+       		<input id="info_{{ deviceId }}" style="display: none; width: 0px;" value="{{ deviceInfos[i] }}">	      
+		  </div>
+	  </div>
+      {% set i = i + 1 %}
+      {% end %}
+    {% end %}
+</div>
+</body>
+</html>

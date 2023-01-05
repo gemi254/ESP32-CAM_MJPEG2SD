@@ -60,7 +60,7 @@
 #define ONEMEG (1024 * 1024)
 #define MAX_PWD_LEN 64
 #define JSON_BUFF_LEN (32 * 1024) // set big enough to hold all file names in a folder
-#define MAX_CONFIGS 110 // > number of entries in configs.txt
+#define MAX_CONFIGS 115 // > number of entries in configs.txt
 #define GITHUB_URL "https://raw.githubusercontent.com/s60sc/ESP32-CAM_MJPEG2SD/master"
 
 #define FILE_EXT "avi"
@@ -79,6 +79,7 @@
 #define INCLUDE_FTP 
 #define INCLUDE_SMTP
 #define INCLUDE_SD
+#define USE_WEBSOCKET_SERVER
 
 #define IS_IO_EXTENDER false // must be false unless IO_Extender
 #define EXTPIN 100
@@ -254,6 +255,15 @@ extern TaskHandle_t ftpHandle;
 extern SemaphoreHandle_t frameMutex;
 extern SemaphoreHandle_t motionMutex;
 
+// Websocket server
+#ifdef USE_WEBSOCKET_SERVER
+  extern char websocket_ip[];
+  extern char websocket_port[];
+  extern bool doRemoteStream;
+  void startWebsocketClient(void);
+  void stopWebsocketClient(void);
+  void socketSendToServer(const char* msg, ...);
+#endif
 
 /************************** structures ********************************/
 
@@ -283,4 +293,3 @@ const frameStruct frameData[] = {
   {"SXGA", 1280, 1024, 5, 3, 1}, 
   {"UXGA", 1600, 1200, 5, 3, 1}  
 };
-

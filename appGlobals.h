@@ -79,7 +79,7 @@
 #define INCLUDE_FTP 
 #define INCLUDE_SMTP
 #define INCLUDE_SD
-#define USE_WEBSOCKET_SERVER
+#define INCLUDE_WEBSOCKET_SERVER
 
 #define IS_IO_EXTENDER false // must be false unless IO_Extender
 #define EXTPIN 100
@@ -256,7 +256,7 @@ extern SemaphoreHandle_t frameMutex;
 extern SemaphoreHandle_t motionMutex;
 
 // Websocket server
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   extern char websocket_ip[];
   extern char websocket_port[];
   extern bool doRemoteStream;

@@ -15,3 +15,5 @@ Remote cameras also transmit other **information messages** like changes in the 
 
 
 # ESP32-CAM_MJPEG2SD
+
+Visit https://github.com/s60sc/ESP32-CAM_MJPEG2SD for more details

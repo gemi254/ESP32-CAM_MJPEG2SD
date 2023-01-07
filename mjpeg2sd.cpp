@@ -69,7 +69,7 @@ static SemaphoreHandle_t readSemaphore;
 static SemaphoreHandle_t playbackSemaphore;
 SemaphoreHandle_t motionMutex = NULL;
 SemaphoreHandle_t aviMutex = NULL;
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   SemaphoreHandle_t frameMutex = NULL;
 #endif
 static volatile bool isPlaying = false;
@@ -318,7 +318,7 @@ static bool closeAvi() {
     checkMemory();
     LOG_INF("*************************************");
     
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
     socketSendToServer("RecordStop");
 #endif
     if (autoUpload) ftpFileOrFolder(aviFileName); // Upload it to remote ftp server if requested
@@ -344,7 +344,7 @@ static boolean processFrame() {
   uint32_t dTime = millis();
   bool finishRecording = false;
   camera_fb_t* fb = esp_camera_fb_get();
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   xSemaphoreTake(frameMutex, portMAX_DELAY);
 #endif
   if (fb == NULL) return false;
@@ -371,7 +371,7 @@ static boolean processFrame() {
       stopPlaying(); // terminate any playback
       stopPlayback = true; // stop any subsequent playback
       LOG_INF("Capture started by %s%s%s", captureMotion ? "Motion " : "", pirVal ? "PIR" : "",forceRecord ? "Button" : "");
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
       socketSendToServer("RecordStart");
 #endif
       openAvi();
@@ -397,7 +397,7 @@ static boolean processFrame() {
     LOG_DBG("============================");
   }
   if (fb != NULL) esp_camera_fb_return(fb);
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
     xSemaphoreGive(frameMutex);
 #endif
   fb = NULL; 
@@ -654,7 +654,7 @@ bool prepRecording() {
   playbackSemaphore = xSemaphoreCreateBinary();
   aviMutex = xSemaphoreCreateMutex();
   motionMutex = xSemaphoreCreateMutex();  
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   frameMutex = xSemaphoreCreateMutex();
 #endif
   camera_fb_t* fb = esp_camera_fb_get();

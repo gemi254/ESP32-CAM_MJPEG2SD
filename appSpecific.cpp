@@ -27,7 +27,7 @@ bool updateAppStatus(const char* variable, const char* value) {
     useMotion = (intVal) ? true : false; 
     LOG_INF("%s motion detection", useMotion ? "Enabling" : "Disabling");
   }
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   else if(!strcmp(variable, "remoteStreamOn"))  (intVal==1) ?  startWebsocketClient() :   stopWebsocketClient();  
 #endif
   else if(!strcmp(variable, "timeLapseOn")) timeLapseOn = intVal;

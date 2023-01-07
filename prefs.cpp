@@ -133,25 +133,30 @@ static bool loadConfigVect() {
       if (!configLineStr.length()) break;
       loadVectItem(configLineStr.c_str());
     } 
-#ifdef USE_WEBSOCKET_SERVER
-    std::string key1("websocket_ip");    
-    if(getKeyPos(key1)==-1){
-      std::string val11("websocket_ip::2:Websocket surveillance server ip to connect");  
-      loadVectItem(val11);  
-      LOG_INF("Added websocket_ip config vectors");
-    }
-    std::string key2("websocket_port");
-    if(getKeyPos(key2)==-1){
-      std::string val12("websocket_port:9090:2:Websocket server port");
-      loadVectItem(val12);
-      LOG_INF("Added websocket_port config vectors");
-    }        
-#endif  
     // sort vector by key (element 0 in row)
     std::sort(configs.begin(), configs.end(), [] (
       const std::vector<std::string> &a, const std::vector<std::string> &b) {
       return a[0] < b[0];}
     );
+#ifdef INCLUDE_WEBSOCKET_SERVER
+    bool addedKey = false;
+    if(getKeyPos(std::string("websocket_port")) < 0){      
+      loadVectItem(std::string("websocket_ip::2:Websocket surveillance server ip to connect"));  
+      addedKey = true;
+    }
+    if(getKeyPos(std::string("websocket_port"))==-1){      
+      loadVectItem(std::string("websocket_port:9090:2:Websocket server port"));
+      addedKey = true;      
+    }
+    if(addedKey){
+      LOG_INF("Added websocket config vectors");
+      // sort vector by key (element 0 in row)
+      std::sort(configs.begin(), configs.end(), [] (
+        const std::vector<std::string> &a, const std::vector<std::string> &b) {
+        return a[0] < b[0];}
+      );
+    }
+#endif  
     // return malloc to default 
     if (psramFound()) heap_caps_malloc_extmem_enable(4096);
     file.close();
@@ -217,7 +222,7 @@ void updateStatus(const char* variable, const char* _value) {
   bool res = true;
   char value[FILE_NAME_LEN];
   strcpy(value, _value);
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   socketSendToServer("%s=%s",variable, value );
 #endif
   int intVal = atoi(value); 
@@ -277,7 +282,7 @@ void updateStatus(const char* variable, const char* _value) {
     }
     doRestart("user requested restart after data deletion"); 
   }
-#ifdef USE_WEBSOCKET_SERVER
+#ifdef INCLUDE_WEBSOCKET_SERVER
   else if(!strcmp(variable, "websocket_ip")) strcpy(websocket_ip, value);
   else if(!strcmp(variable, "websocket_port")) strcpy(websocket_port, value);
 #endif  

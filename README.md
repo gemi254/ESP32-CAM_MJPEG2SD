@@ -3,7 +3,7 @@ This is a modified version of ESP32-CAM_MJPEG2SD, providing a **surveillance sys
 
 Added a **web-socket multi-client server** (websockets_stream_server.py) written in Python, that can be run on a remote host (Windows/Linux), allowing ep32 camera clients to connect and transmit their video feeds. ESP32-CAM_MJPEG2SD acts as a websocket client, making remote connections to the server, allowing video streams to be transmitted over the internet without any port/firewall restrictions. Multiple esp32-camera clients can be connected simultaneously on the python server and all remote streams can be viewed on a **single control page**. 
 
-From this page you can control each camera's **parameters remotely** allowing to change frame rate, motion detection, or set it's **resolution**. You can type in the `Remote query` input box a text command and press enter to send this command to this camera. For example fps=10 will set the remote camera's fps to 10. Alternative you can type a text command to the `Remote query for all clients` edit box and the command will be transmitted to all connected cameras. Multiple comma separated commands can also be entered allowing detailed setup of each camera client. An editable list box with user's **sets of commands** is available so setup combinations can be stored and recalled later.
+## Purpose
 
 On the remote host you will need to have **python 3** installed with some additional packages, and a free tcp port to make the connections (default is 9090). See /python_ backend/install.txt for information how to install stream server on the remote host. 
 

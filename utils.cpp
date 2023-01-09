@@ -89,9 +89,9 @@ static void onWiFiEvent(WiFiEvent_t event) {
   if (event == ARDUINO_EVENT_WIFI_READY);
   else if (event == ARDUINO_EVENT_WIFI_SCAN_DONE);  
   else if (event == ARDUINO_EVENT_WIFI_STA_START) LOG_INF("Wifi Station started, connecting to: %s", ST_SSID);
-  else if (event == ARDUINO_EVENT_WIFI_STA_STOP) LOG_INF("Wifi Station stopped");
-  else if (event == ARDUINO_EVENT_WIFI_AP_START) LOG_INF("Wifi AP SSID: %s started, use 'http://%s' to connect", AP_SSID, WiFi.softAPIP().toString().c_str());
-  else if (event == ARDUINO_EVENT_WIFI_AP_STOP) LOG_INF("Wifi AP stopped");
+  else if (event == ARDUINO_EVENT_WIFI_STA_STOP) LOG_INF("Wifi Station stopped %s", ST_SSID);
+  else if (event == ARDUINO_EVENT_WIFI_AP_START) LOG_INF("Wifi AP SSID: %s started, use 'http://%s' to connect", WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
+  else if (event == ARDUINO_EVENT_WIFI_AP_STOP) LOG_INF("Wifi AP stopped: %s", WiFi.softAPSSID().c_str());
   else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) LOG_INF("Wifi Station IP, use 'http://%s' to connect", WiFi.localIP().toString().c_str()); 
   else if (event == ARDUINO_EVENT_WIFI_STA_LOST_IP) LOG_INF("Wifi Station lost IP");
   else if (event == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
@@ -142,7 +142,6 @@ static bool setWifiSTA() {
 
 bool startWifi(bool firstcall) {
   // start wifi station (and wifi AP if allowed or station not defined)
-  WiFi.disconnect();
   if (firstcall) {
     WiFi.persistent(false); // prevent the flash storage WiFi credentials
     WiFi.setAutoReconnect(false); // Set whether module will attempt to reconnect to an access point in case it is disconnected
@@ -151,9 +150,11 @@ bool startWifi(bool firstcall) {
     WiFi.setHostname(hostName);
   }
   WiFi.mode(WIFI_AP_STA);
+  WiFi.disconnect();
+  WiFi.softAPdisconnect(true); // kill rogue connections on startup
   bool station = setWifiSTA();
   debugMemory("setWifiSTA");
-  if (firstcall && (!station || allowAP)) setWifiAP(); // AP always allowed if no Station SSID eg on first time use
+  if (!station || allowAP) setWifiAP(); // AP allowed if no Station SSID eg on first time use
   debugMemory("setWifiAP");
   if (station) {
     // connect to Wifi station
@@ -186,9 +187,6 @@ static void pingSuccess(esp_ping_handle_t hdl, void *args) {
 }
 
 static void pingTimeout(esp_ping_handle_t hdl, void *args) {
-//  esp_ping_stop(pingHandle);
-//  esp_ping_delete_session(pingHandle);
-//  pingHandle = NULL;
   LOG_WRN("Failed to ping gateway, restart wifi ...");
   startWifi(false);
 }
@@ -219,12 +217,19 @@ static void startPing() {
   LOG_INF("Started ping monitoring");
 }
 
+void stopPing() {
+  esp_ping_stop(pingHandle);
+  esp_ping_delete_session(pingHandle);
+  pingHandle = NULL;
+}
 
 /************************** NTP  **************************/
 
-char timezone[64] = "GMT0BST,M3.5.0/01,M10.5.0/02"; 
+// Needs to be a time zone string from: https://raw.githubusercontent.com/nayarsystems/posix_tz_db/master/zones.csv
+char timezone[64] = "GMT0";
+char ntpServer[64] = "pool.ntp.org";
 
-static inline time_t getEpoch() {
+time_t getEpoch() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return tv.tv_sec;
@@ -247,7 +252,7 @@ static void showLocalTime(const char* timeSrc) {
 
 bool getLocalNTP() {
   // get current time from NTP server and apply to ESP32
-  const char* ntpServer = "pool.ntp.org";
+  LOG_INF("Using NTP server: %s", ntpServer);
   configTzTime(timezone, ntpServer);
   if (getEpoch() > 10000) {
     showLocalTime("NTP");    
@@ -259,25 +264,11 @@ bool getLocalNTP() {
   }
 }
 
-void syncToBrowser(const char *val) {
-  // Synchronize clock to browser clock if no sync with NTP
-  if (timeSynchronized) return;
-
-  int Year, Month, Day, Hour, Minute, Second ;
-  sscanf(val, "%d-%d-%dT%d:%d:%d", &Year, &Month, &Day, &Hour, &Minute, &Second);
-
-  struct tm t;
-  t.tm_year = Year - 1900;
-  t.tm_mon  = Month - 1;    // Month, 0 - jan
-  t.tm_mday = Day;          // Day of the month
-  t.tm_hour = Hour;
-  t.tm_min  = Minute;
-  t.tm_sec  = Second;
-
-  time_t t_of_day = mktime(&t);
-  timeval epoch = {t_of_day, 0};
-  struct timezone utc = {0, 0};
-  settimeofday(&epoch, &utc);
+void syncToBrowser(uint32_t browserUTC) {
+  // Synchronize to browser clock if out of sync
+  struct timeval tv;
+  tv.tv_sec = browserUTC;
+  settimeofday(&tv, NULL);
   setenv("TZ", timezone, 1);
   tzset();
   showLocalTime("browser");

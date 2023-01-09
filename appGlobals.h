@@ -42,7 +42,7 @@
 #define FLUSH_DELAY 0 // for debugging crashes
  
 #define APP_NAME "ESP-CAM_MJPEG" // max 15 chars
-#define APP_VER "8.0.1"
+#define APP_VER "8.2.1"
 
 #define MAX_CLIENTS 2 // allowing too many concurrent web clients can cause error
 #define DATA_DIR "/data"
@@ -72,7 +72,7 @@
 #define TLTEMP "/current.tl"
 
 #define FILLSTAR "****************************************************************"
-#define DELIM ':'
+#define DELIM '~'
 #define STORAGE SD_MMC // one of: SPIFFS LittleFS SD_MMC 
 #define RAMSIZE (1024 * 8) // set this to multiple of SD card sector size (512 or 1024 bytes)
 #define CHUNKSIZE (1024 * 4)
@@ -293,3 +293,4 @@ const frameStruct frameData[] = {
   {"SXGA", 1280, 1024, 5, 3, 1}, 
   {"UXGA", 1600, 1200, 5, 3, 1}  
 };
+

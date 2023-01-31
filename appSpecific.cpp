@@ -47,13 +47,14 @@ bool updateAppStatus(const char* variable, const char* value) {
   else if(!strcmp(variable, "forceRecord")) forceRecord = (intVal) ? true : false;                                       
   else if(!strcmp(variable, "dbgMotion")) {
     // only enable show motion if motion detect enabled
-    if (intVal && useMotion) dbgMotion = true;
-    else  dbgMotion = false;
+    dbgMotion = (intVal && useMotion) ? true : false;
     doRecording = !dbgMotion;
   }
   
   // peripherals
   else if(!strcmp(variable, "useIOextender")) useIOextender = (bool)intVal;
+  else if(!strcmp(variable, "uartTxdPin")) uartTxdPin = intVal;
+  else if(!strcmp(variable, "uartRxdPin")) uartRxdPin = intVal;
   else if(!strcmp(variable, "pirUse")) pirUse = (bool)intVal;
   else if(!strcmp(variable, "lampUse")) lampUse = (bool)intVal;
   else if(!strcmp(variable, "lampAuto")) lampAuto = (bool)intVal;
@@ -110,6 +111,8 @@ bool updateAppStatus(const char* variable, const char* value) {
     else if(!strcmp(variable, "contrast")) res = s->set_contrast(s, intVal);
     else if(!strcmp(variable, "brightness")) res = s->set_brightness(s, intVal);
     else if(!strcmp(variable, "saturation")) res = s->set_saturation(s, intVal);
+    else if(!strcmp(variable, "denoise")) res = s->set_denoise(s, intVal);    
+    else if(!strcmp(variable, "sharpness")) res = s->set_sharpness(s, intVal);    
     else if(!strcmp(variable, "gainceiling")) res = s->set_gainceiling(s, (gainceiling_t)intVal);
     else if(!strcmp(variable, "colorbar")) res = s->set_colorbar(s, intVal);
     else if(!strcmp(variable, "awb")) res = s->set_whitebal(s, intVal);
@@ -134,6 +137,33 @@ bool updateAppStatus(const char* variable, const char* value) {
   return res == ESP_OK ? true : false;
 }
 
+void wsAppSpecificHandler(const char* wsMsg) {
+  // message from web socket
+  int wsLen = strlen(wsMsg) - 1;
+  switch ((char)wsMsg[0]) {
+    case 'H': 
+      // keepalive heartbeat, return status
+    break;
+    case 'S': 
+      // status request
+      buildJsonString(wsLen); // required config number 
+      logPrint("%s\n", jsonBuff);
+    break;   
+    case 'U': 
+      // update or control request
+      memcpy(jsonBuff, wsMsg + 1, wsLen); // remove 'U'
+      parseJson(wsLen);
+    break;
+    case 'K': 
+      // kill websocket connection
+      killWebSocket();
+    break;
+    default:
+      LOG_WRN("unknown command %c", (char)wsMsg[0]);
+    break;
+  }
+}
+
 void buildAppJsonString(bool filter) {
   // build app specific part of json string
   char* p = jsonBuff + 1;
@@ -142,10 +172,16 @@ void buildAppJsonString(bool filter) {
   float aTemp = readTemperature(true);
   if (aTemp > -127.0) p += sprintf(p, "\"atemp\":\"%0.1f\",", aTemp);
   else p += sprintf(p, "\"atemp\":\"n/a\",");
+  float currentVoltage = readVoltage();
   if (currentVoltage < 0) p += sprintf(p, "\"battv\":\"n/a\",");
-  else p += sprintf(p, "\"battv\":\"%0.1fV\",", currentVoltage);  
-  p += sprintf(p, "\"forceRecord\":%u,", forceRecord ? 1 : 0);  
-  p += sprintf(p, "\"forcePlayback\":%u,", doPlayback ? 1 : 0);  
+  else p += sprintf(p, "\"battv\":\"%0.1fV\",", currentVoltage); 
+  if (forcePlayback && !doPlayback) {
+    // switch off playback on browser
+    forcePlayback = false;
+    p += sprintf(p, "\"forcePlayback\":0,");  
+  }
+  p += sprintf(p, "\"showRecord\":%u,", (uint8_t)isCapturing);
+  p += sprintf(p, "\"camModel\":\"%s\",", camModel); 
   
   // Extend info
   uint8_t cardType = SD_MMC.cardType();
@@ -178,9 +214,9 @@ void buildAppJsonString(bool filter) {
   p += sprintf(p, "\"progressBar\":%u,", percentLoaded);  
   if (percentLoaded == 100) percentLoaded = 0;
   //p += sprintf(p, "\"vcc\":\"%i V\",", ESP.getVcc() / 1023.0F; ); 
-  if (!filter) p += sprintf(p, "\"sfile\":%s,", "\"None\"");
   *p = 0;
 }
+
 bool appDataFiles() {
   // callback from setupAssist.cpp, for any app specific files 
   return true;

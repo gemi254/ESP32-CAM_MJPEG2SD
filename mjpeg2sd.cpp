@@ -300,7 +300,7 @@ static bool closeAvi() {
     cTime = millis() - cTime;
     // AVI stats
     LOG_INF("******** AVI recording stats ********");
-    LOG_INF("Recorded %s", aviFileName);
+    LOG_ALT("Recorded %s", aviFileName);
     LOG_INF("AVI duration: %u secs", vidDurationSecs);
     LOG_INF("Number of frames: %u", frameCnt);
     LOG_INF("Required FPS: %u", FPS);
@@ -330,7 +330,7 @@ static bool closeAvi() {
   } else {
     // delete too small files if exist
     SD_MMC.remove(AVITEMP);
-    LOG_WRN("Insufficient capture duration: %u secs", vidDurationSecs);                 
+    LOG_INF("Insufficient capture duration: %u secs", vidDurationSecs);                 
     return false;
   }
 }
@@ -457,6 +457,7 @@ static void playbackFPS(const char* fname) {
   // extract meta data from filename to commence playback
   fnameStruct fnameMeta = extractMeta(fname);
   recFPS = fnameMeta.recFPS;
+  if (recFPS < 1) recFPS = 1;
   recDuration = fnameMeta.recDuration;
   // temp change framerate to recorded framerate
   FPS = recFPS;
@@ -694,6 +695,7 @@ void endTasks() {
 void OTAprereq() {
   // stop timer isrs, and free up heap space, or crashes esp32
   controlFrameTimer(false);
+  stopPing();
   endTasks();
   esp_camera_deinit();
   delay(100);

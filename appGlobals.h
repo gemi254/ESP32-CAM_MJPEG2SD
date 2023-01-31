@@ -42,9 +42,9 @@
 #define FLUSH_DELAY 0 // for debugging crashes
  
 #define APP_NAME "ESP-CAM_MJPEG" // max 15 chars
-#define APP_VER "8.2.1"
+#define APP_VER "8.4.0"
 
-#define MAX_CLIENTS 2 // allowing too many concurrent web clients can cause error
+#define MAX_CLIENTS 2 // allowing too many concurrent web clients can cause errors
 #define DATA_DIR "/data"
 #define HTML_EXT ".htm"
 #define TEXT_EXT ".txt"
@@ -60,7 +60,7 @@
 #define ONEMEG (1024 * 1024)
 #define MAX_PWD_LEN 64
 #define JSON_BUFF_LEN (32 * 1024) // set big enough to hold all file names in a folder
-#define MAX_CONFIGS 115 // > number of entries in configs.txt
+#define MAX_CONFIGS 110 // > number of entries in configs.txt
 #define GITHUB_URL "https://raw.githubusercontent.com/s60sc/ESP32-CAM_MJPEG2SD/master"
 
 #define FILE_EXT "avi"
@@ -83,9 +83,6 @@
 
 #define IS_IO_EXTENDER false // must be false unless IO_Extender
 #define EXTPIN 100
-
-// which optional web assets to download
-#define USE_JQUERY true
 
 #if defined(CAMERA_MODEL_ESP32S3_EYE)
 // pins configured for SD card on this camera board
@@ -129,7 +126,6 @@ void openSDfile(const char* streamFile);
 void prepAviIndex(bool isTL = false);
 bool prepRecording();
 void prepMic();
-float readTemperature(bool isCelsius);
 void setCamPan(int panVal);
 void setCamTilt(int tiltVal);
 uint8_t setFPS(uint8_t val);
@@ -167,7 +163,8 @@ extern bool autoUpload;
 extern bool dbgMotion;
 extern bool doPlayback;
 extern bool doRecording; // whether to capture to SD or not
-extern bool forceRecord; //Recording enabled by rec button
+extern bool forceRecord; // Recording enabled by rec button
+extern bool forcePlayback; // playback enabled by user
 extern uint8_t FPS;
 extern uint8_t fsizePtr; // index to frameData[] for record
 extern bool isCapturing;
@@ -184,6 +181,7 @@ extern bool timeLapseOn; // enable time lapse recording
 extern int maxFrames;
 extern char inFileName[];
 extern uint8_t xclkMhz;
+extern char camModel[];
 
 // buffers
 extern uint8_t iSDbuffer[];
@@ -211,6 +209,7 @@ extern bool micUse; // true to use external I2S microphone
 
 // sensors 
 extern int pirPin; // if usePir is true
+extern bool pirVal;
 extern int lampPin; // if useLamp is true
 // Pan / Tilt Servos 
 extern int servoPanPin; // if useServos is true
@@ -220,8 +219,8 @@ extern int ds18b20Pin; // if INCLUDE_DS18B20 uncommented
 // batt monitoring 
 extern int voltPin; 
 
-extern float dsTemp;
-extern bool pirVal;
+
+
 
 // microphone recording
 extern int micSckPin; // I2S SCK
@@ -239,7 +238,6 @@ extern int servoMaxPulseWidth;
 extern int voltDivider;
 extern int voltLow;
 extern int voltInterval;
-extern float currentVoltage; 
 
 // audio
 extern const uint32_t SAMPLE_RATE; // audio sample rate
@@ -272,13 +270,13 @@ struct frameStruct {
   const uint16_t frameWidth;
   const uint16_t frameHeight;
   const uint16_t defaultFPS;
-  const uint8_t scaleFactor; // (0..3)
+  const uint8_t scaleFactor; // (0..4)
   const uint8_t sampleRate; // (1..N)
 };
 
 // indexed by frame size - needs to be consistent with sensor.h framesize_t enum
 const frameStruct frameData[] = {
-  {"96X96", 96, 96, 30, 1, 1}, 
+  {"96X96", 96, 96, 30, 1, 1},   // 2MP sensors
   {"QQVGA", 160, 120, 30, 1, 1},
   {"QCIF", 176, 144, 30, 1, 1}, 
   {"HQVGA", 240, 176, 30, 2, 1}, 
@@ -291,6 +289,13 @@ const frameStruct frameData[] = {
   {"XGA", 1024, 768, 5, 3, 1},   
   {"HD", 1280, 720, 5, 3, 1}, 
   {"SXGA", 1280, 1024, 5, 3, 1}, 
-  {"UXGA", 1600, 1200, 5, 3, 1}  
+  {"UXGA", 1600, 1200, 5, 3, 1},  
+  {"FHD", 920, 1080, 5, 3, 1},    // 3MP Sensors
+  {"P_HD", 720, 1280, 5, 3, 1},
+  {"P_3MP", 864, 1536, 5, 3, 1},
+  {"QXGA", 2048, 1536, 5, 4, 1},
+  {"QHD", 2560, 1440, 5, 4, 1},   // 5MP Sensors
+  {"WQXGA", 2560, 1600, 5, 4, 1},
+  {"P_FHD", 1080, 1920, 5, 3, 1},
+  {"QSXGA", 2560, 1920, 4, 4, 1}
 };
-

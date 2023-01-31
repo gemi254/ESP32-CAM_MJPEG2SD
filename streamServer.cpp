@@ -3,7 +3,6 @@
 //
 // s60sc 2022
 //
-// contribution from @marekful
 
 #include "appGlobals.h"
 
@@ -15,11 +14,12 @@
 static const size_t boundaryLen = strlen(JPEG_BOUNDARY);
 static char hdrBuf[HDR_BUF_LEN];
 static fs::FS fpv = STORAGE;
+bool forcePlayback = false;
 
 static httpd_handle_t streamServer = NULL; // streamer listens on port 81
 
 esp_err_t webAppSpecificHandler(httpd_req_t *req, const char* variable, const char* value) {
-  // update handling specific to mjpeg2sd
+  // update handling requiring response specific to mjpeg2sd
   if (!strcmp(variable, "sfile")) {
     // get folders / files on SD, save received filename if has required extension
     strcpy(inFileName, value);
@@ -58,16 +58,18 @@ static esp_err_t streamHandler(httpd_req_t* req) {
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
   if (!strcmp(variable, "random")) singleFrame = true;
+  doPlayback = false;
   if (!strcmp(variable, "source") && !strcmp(value, "file")) {
+    forcePlayback = true;
     if (fpv.exists(inFileName)) {
-      LOG_INF("Playback enabled (SD file selected)");
-      doPlayback = true;
+      if (stopPlayback) LOG_WRN("Playback refused - capture in progress");
+      else {
+        LOG_INF("Playback enabled (SD file selected)");
+        doPlayback = true;
+      }
     } else LOG_WRN("File %s doesn't exist when Playback requested", inFileName);
   }
-  else if (!strcmp(variable, "source") && !strcmp(value, "sensor")) {
-    LOG_INF("Playback disabled while live streaming");
-    doPlayback = false;
-  }
+
   // output header if streaming request
   if (!singleFrame) httpd_resp_set_type(req, STREAM_CONTENT_TYPE);
 
@@ -151,6 +153,9 @@ static esp_err_t streamHandler(httpd_req_t* req) {
 void startStreamServer() {
 if (psramFound()) heap_caps_malloc_extmem_enable(0); 
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+#if CONFIG_IDF_TARGET_ESP32S3
+  config.stack_size = 1024 * 8;
+#endif
   httpd_uri_t streamUri = {.uri = "/stream", .method = HTTP_GET, .handler = streamHandler, .user_ctx = NULL};
   config.server_port += 1;
   config.ctrl_port += 1;

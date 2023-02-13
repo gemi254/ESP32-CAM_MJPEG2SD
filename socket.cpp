@@ -44,7 +44,7 @@ void socketSendToServerData(const char *data) {
   if (!getLocalTime(&timeinfo)) return;
   int n = strlen(data) + 20;
   char buff[n];
-  sprintf(buff, "#%u|%s", mktime(&timeinfo), data);
+  sprintf(buff, "#%lu|%s", mktime(&timeinfo), data);
   esp_websocket_client_send_text(sclient, buff, strlen(buff), portMAX_DELAY);
 }
 void checkForRemoteQuerry() {
@@ -126,7 +126,7 @@ static void socketTask(void* parameter) {
         struct tm timeinfo;
         getLocalTime(&timeinfo);
         char buff[20];
-        sprintf(buff, "%u", mktime(&timeinfo));
+        sprintf(buff, "%lu", mktime(&timeinfo));
         int tmSz = strlen(buff);
         //LOG_INF("%s|%i",buff, tmSz);
         //Store frame in a buffer to be trasmited        

@@ -167,7 +167,7 @@ if (psramFound()) heap_caps_malloc_extmem_enable(4096);
 debugMemory("startStreamserver");
 }
 
-void wsAppSpecificHandler(const char* wsMsg) {
+void wsAppSpecificHandler1(const char* wsMsg) {
   // process app specific websocket message & send response if required       
 }  
  

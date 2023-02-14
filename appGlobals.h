@@ -60,7 +60,7 @@
 #define ONEMEG (1024 * 1024)
 #define MAX_PWD_LEN 64
 #define JSON_BUFF_LEN (32 * 1024) // set big enough to hold all file names in a folder
-#define MAX_CONFIGS 110 // > number of entries in configs.txt
+#define MAX_CONFIGS 120 // > number of entries in configs.txt
 #define GITHUB_URL "https://raw.githubusercontent.com/s60sc/ESP32-CAM_MJPEG2SD/master"
 
 #define FILE_EXT "avi"

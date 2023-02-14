@@ -142,12 +142,22 @@ static bool loadConfigVect() {
     );
 #ifdef INCLUDE_WEBSOCKET_SERVER
     bool addedKey = false;
-    if(getKeyPos(std::string("websocket_port")) < 0){      
-      loadVectItem(std::string("websocket_ip::2:Websocket surveillance server ip to connect"));  
+    if(getKeyPos(std::string("websocket_enabled")) < 0){            
+      std::string vec = std::string("websocket_enabled:0:2:C:Websockets enabled");
+      std::replace( vec.begin(), vec.end(), ':', DELIM);
+      loadVectItem(vec);
       addedKey = true;
     }
-    if(getKeyPos(std::string("websocket_port"))==-1){      
-      loadVectItem(std::string("websocket_port:9090:2:Websocket server port"));
+    if(getKeyPos(std::string("websocket_ip")) < 0){      
+      std::string vec = std::string("websocket_ip::2:T:Websocket surveillance server ip to connect");
+      std::replace( vec.begin(), vec.end(), ':', DELIM);
+      loadVectItem(vec);
+      addedKey = true;
+    }
+    if(getKeyPos(std::string("websocket_port")) < 0){      
+      std::string vec = std::string("websocket_port:9090:2:N:Websocket server port");
+      std::replace( vec.begin(), vec.end(), ':', DELIM);
+      loadVectItem(vec);
       addedKey = true;      
     }
     if(addedKey){
@@ -284,6 +294,7 @@ void updateStatus(const char* variable, const char* _value) {
     doRestart("user requested restart after data deletion"); 
   }
 #ifdef INCLUDE_WEBSOCKET_SERVER
+  else if(!strcmp(variable, "websocket_enabled")) doRemoteStream = (bool)intVal;
   else if(!strcmp(variable, "websocket_ip")) strcpy(websocket_ip, value);
   else if(!strcmp(variable, "websocket_port")) strcpy(websocket_port, value);
 #endif  

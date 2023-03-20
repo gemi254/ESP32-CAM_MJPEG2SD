@@ -1,11 +1,27 @@
 
-# Websocket surveillance system
+ESP32 / ESP32S3 Camera application to record JPEGs to SD card as AVI files and playback to browser as an MJPEG stream. The AVI format allows recordings to replay at correct frame rate on media players. If a microphone is installed then a WAV file is also created and stored in the AVI file.
+ 
+Changes for version 8.0:
+- compiled for arduino-esp32 v2.0.7
+- support for ESP32S3 (much better than ESP32)
+- simultaneous Wifi Station and AP mode
+- lamp has variable intensity
+- internal code restructuring.
 
-This is a modified version of ESP32-CAM_MJPEG2SD, implementing a **surveillance system** from multiple esp32-cam devices, using a web socket server on a **remote host** over the **internet**.
+Changes up to version 8.5:
+- Web page improvements and jQuery removed.
+- Support for OV5640 and OV3660 cameras, but see [**OV5640**](#ov5640) section below.
+- Spurious error [message](https://github.com/s60sc/ESP32-CAM_MJPEG2SD/issues/155) removed. 
+- fix for [timezone](https://github.com/s60sc/ESP32-CAM_MJPEG2SD/issues/150). 
+- fix for unwanted [APs](https://github.com/s60sc/ESP32-CAM_MJPEG2SD/issues/144). 
+- NTP server [configurable](https://github.com/s60sc/ESP32-CAM_MJPEG2SD/issues/151). 
+- Valid GitHub cert for https download
+- Improve AP stability
+
 
 ## Purpose
 
-A **web-socket multi-client server** (websockets_stream_server.py) written in Python, acts as **Surveillance server**. It can be run on any remote host (Windows/Linux), allowing ep32 camera clients to connect and transmit their video feeds. Each ep32 camera act as a websocket client, making remote connections to the **remotet sockets server**. The server can be hosted over the internet, allowing video streams to be transmitted without any port/firewall restrictions. Multiple esp32-camera clients can be connected simultaneously on the server and all remote video streams can be viewed on a **single control page**. 
+The application enables video capture of motion detection or timelapse recording. Examples include security cameras or wildlife monitoring.  This [instructable](https://www.instructables.com/How-to-Make-a-WiFi-Security-Camera-ESP32-CAM-DIY-R/) by [Max Imagination](https://www.instructables.com/member/Max+Imagination/) shows how to build a WiFi Security Camera using an earlier version of this code.
 
 ## Setup
 

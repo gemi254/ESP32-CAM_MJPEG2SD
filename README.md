@@ -1,8 +1,10 @@
+# Websocket surveillance system
 
+This is a modified version of ESP32-CAM_MJPEG2SD, implementing a **surveillance system** from multiple esp32-cam devices, using a web socket server on a **remote host** over the **internet**.
 
 ## Purpose
 
-The application enables video capture of motion detection or timelapse recording. Examples include security cameras or wildlife monitoring.  This [instructable](https://www.instructables.com/How-to-Make-a-WiFi-Security-Camera-ESP32-CAM-DIY-R/) by [Max Imagination](https://www.instructables.com/member/Max+Imagination/) shows how to build a WiFi Security Camera using an earlier version of this code.
+A **web-socket multi-client server** (websockets_stream_server.py) written in Python, acts as **Surveillance server**. It can be run on any remote host (Windows/Linux), allowing ep32 camera clients to connect and transmit their video feeds. Each ep32 camera act as a websocket client, making remote connections to the **remotet sockets server**. The server can be hosted over the internet, allowing video streams to be transmitted without any port/firewall restrictions. Multiple esp32-camera clients can be connected simultaneously on the server and all remote video streams can be viewed on a **single control page**. 
 
 ## Setup
 

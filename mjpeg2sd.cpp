@@ -317,7 +317,11 @@ static bool closeAvi() {
     LOG_INF("Busy: %u%%", std::min(100 * (wTimeTot + fTimeTot + dTimeTot + oTime + cTime) / vidDuration, (uint32_t)100));
     checkMemory();
     LOG_INF("*************************************");
-    
+    LOG_INF("*************************************");    
+#ifdef INCLUDE_MQTT
+    sprintf(jsonBuff, "{\"%s\":\"%s\", \"%s\":\"%s\"}", "RECORD","OFF","TIME",esp_log_system_timestamp());    
+    mqttPublish(jsonBuff);
+#endif
 #ifdef INCLUDE_WEBSOCKET_SERVER
     socketSendToServer("RecordStop");
 #endif
@@ -370,6 +374,11 @@ static boolean processFrame() {
       if (lampAuto && nightTime) setLamp(lampLevel); // switch on lamp
       stopPlaying(); // terminate any playback
       stopPlayback = true; // stop any subsequent playback
+      LOG_ALT("Capture started by %s%s%s", captureMotion ? "Motion " : "", pirVal ? "PIR" : "",forceRecord ? "Button" : "");
+  #ifdef INCLUDE_MQTT
+      sprintf(jsonBuff, "{\"%s\":\"%s\", \"%s\":\"%s\"}", "RECORD","ON","TIME",esp_log_system_timestamp());    
+      mqttPublish(jsonBuff);
+  #endif
       LOG_INF("Capture started by %s%s%s", captureMotion ? "Motion " : "", pirVal ? "PIR" : "",forceRecord ? "Button" : "");
 #ifdef INCLUDE_WEBSOCKET_SERVER
       socketSendToServer("RecordStart");

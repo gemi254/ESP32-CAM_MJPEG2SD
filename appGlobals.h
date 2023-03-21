@@ -85,6 +85,7 @@
 #define INCLUDE_FTP 
 #define INCLUDE_SMTP
 #define INCLUDE_SD
+#define INCLUDE_MQTT
 #define INCLUDE_WEBSOCKET_SERVER
 
 #define IS_IO_EXTENDER false // must be false unless IO_Extender

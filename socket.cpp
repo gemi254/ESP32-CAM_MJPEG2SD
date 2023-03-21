@@ -1,4 +1,3 @@
-//#include "myConfig.h"
 #include "appGlobals.h"
 #include "esp_websocket_client.h"
 #include "esp_event.h"
@@ -47,7 +46,8 @@ void socketSendToServerData(const char *data) {
   sprintf(buff, "#%lu|%s", mktime(&timeinfo), data);
   esp_websocket_client_send_text(sclient, buff, strlen(buff), portMAX_DELAY);
 }
-void checkForRemoteQuerry() {
+
+void checkForRemoteQuerrySocket() {
   //Execure remote querry dbgVerbose=1;framesize=7;fps=1
   if(strlen(remoteQuery) > 0) {
     char* query = strtok(remoteQuery, ";");
@@ -103,7 +103,7 @@ static void socketTask(void* parameter) {
     if (esp_websocket_client_is_connected(sclient)) {
       remoteStreamInProgress = true;
       //Check if server sends a remote command
-      checkForRemoteQuerry();
+      checkForRemoteQuerrySocket();
       //Stream is paused
       if(remoteStreamPaused){
         LOG_DBG("paused");

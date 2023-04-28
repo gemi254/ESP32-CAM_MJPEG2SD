@@ -87,6 +87,7 @@ float readVoltage();
 void remote_log_init();
 void removeChar(char *s, char c);
 void reset_log();
+void setFolderName(const char* fname, char* fileName);
 void setPeripheralResponse(const byte pinNum, const uint32_t responseData);
 void setupADC();
 void showProgress();
@@ -107,7 +108,7 @@ uint32_t usePeripheral(const byte pinNum, const uint32_t receivedData);
 void wsAsyncSend(const char* wsData);
 void startMqttClient();  
 void stopMqttClient();  
-void mqttPublish(const char *payload);
+void mqttPublish(const char* payload);
 
 /******************** Global utility declarations *******************/
 
@@ -137,7 +138,6 @@ extern uint8_t percentLoaded;
 extern int refreshVal;
 extern bool configLoaded;
 extern bool dataFilesChecked;
-extern bool allowSpaces;// set set true to allow whitespace in configs.txt key values
 extern const char* git_rootCACertificate;
 extern char ipExtAddr[];
   

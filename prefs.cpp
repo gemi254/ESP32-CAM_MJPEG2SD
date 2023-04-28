@@ -32,7 +32,6 @@ static std::vector<std::vector<std::string>> configs;
 static Preferences prefs; 
 char* jsonBuff = NULL;
 bool configLoaded = false;
-bool allowSpaces = false;
 static char appId[16];
 
 
@@ -102,7 +101,7 @@ static void loadVectItem(const std::string keyValGrpLabel) {
     while (std::getline(ss, token[i++], DELIM));
     if (i != tokens+1) LOG_ERR("Unable to parse '%s', len %u", keyValGrpLabel.c_str(), keyValGrpLabel.length());
     else {
-      if (!allowSpaces) token[1].erase(std::remove(token[1].begin(), token[1].end(), ' '), token[1].end());
+      if (!ALLOW_SPACES) token[1].erase(std::remove(token[1].begin(), token[1].end(), ' '), token[1].end());
       if (token[tokens-1][token[tokens-1].size() - 1] == '\r') token[tokens-1].erase(token[tokens-1].size() - 1);
       configs.push_back({token[0], token[1], token[2], token[3], token[4]});
     }
@@ -209,9 +208,7 @@ static bool savePrefs(bool retain = true) {
 #ifdef INCLUDE_SMTP
   prefs.putString("SMTP_Pass", SMTP_Pass);
 #endif
-#ifdef INCLUDE_MQTT
   prefs.putString("mqtt_user_Pass", mqtt_user_Pass);
-#endif
   prefs.end();
   LOG_INF("Saved preferences");
   return true;
@@ -239,9 +236,7 @@ static bool loadPrefs() {
 #ifdef INCLUDE_SMTP
   prefs.getString("SMTP_Pass", SMTP_Pass, MAX_PWD_LEN);
 #endif
-#ifdef INCLUDE_MQTT
   prefs.getString("mqtt_user_Pass", mqtt_user_Pass, MAX_PWD_LEN);
-#endif
   prefs.end();
   return true;
 }
@@ -252,7 +247,7 @@ void updateStatus(const char* variable, const char* _value) {
   bool res = true;
   char value[FILE_NAME_LEN];
   strcpy(value, _value);  
-  if(mqtt_active){
+  if (mqtt_active) {
     char buff[FILE_NAME_LEN * 2];
     sprintf(buff,"%s=%s",variable, value);
     mqttPublish(buff);
@@ -278,7 +273,6 @@ void updateStatus(const char* variable, const char* _value) {
   else if (!strcmp(variable, "AP_SSID")) strcpy(AP_SSID, value);
   else if (!strcmp(variable, "AP_Pass") && strchr(value, '*') == NULL) strcpy(AP_Pass, value); 
   else if (!strcmp(variable, "allowAP")) allowAP = (bool)intVal;
-  else if (!strcmp(variable, "allowSpaces")) allowSpaces = (bool)intVal;
 #ifdef INCLUDE_FTP
   else if (!strcmp(variable, "ftp_server")) strcpy(ftp_server, value);
   else if (!strcmp(variable, "ftp_port")) ftp_port = intVal;
@@ -296,18 +290,17 @@ void updateStatus(const char* variable, const char* _value) {
   else if (!strcmp(variable, "smtpFrame")) smtpFrame = intVal;
   else if (!strcmp(variable, "smtpMaxEmails")) smtpMaxEmails = intVal;
 #endif
-#ifdef INCLUDE_MQTT
-  else if(!strcmp(variable, "mqtt_active")){
+  else if (!strcmp(variable, "mqtt_active")) {
     mqtt_active = (bool)intVal;
-    if(mqtt_active) startMqttClient();
+    if (mqtt_active) startMqttClient();
     else stopMqttClient();
   } 
-  else if(!strcmp(variable, "mqtt_broker")) strcpy(mqtt_broker, value);
-  else if(!strcmp(variable, "mqtt_port")) strcpy(mqtt_port, value);
-  else if(!strcmp(variable, "mqtt_user")) strcpy(mqtt_user, value);
-  else if(!strcmp(variable, "mqtt_user_Pass")) strcpy(mqtt_user_Pass, value);
-  else if(!strcmp(variable, "mqtt_topic_prefix")) strcpy(mqtt_topic_prefix, value);
-#endif  
+  else if (!strcmp(variable, "mqtt_broker")) strcpy(mqtt_broker, value);
+  else if (!strcmp(variable, "mqtt_port")) strcpy(mqtt_port, value);
+  else if (!strcmp(variable, "mqtt_user")) strcpy(mqtt_user, value);
+  else if (!strcmp(variable, "mqtt_user_Pass")) strcpy(mqtt_user_Pass, value);
+  else if (!strcmp(variable, "mqtt_topic_prefix")) strcpy(mqtt_topic_prefix, value);
+ 
   // Other settings
   else if (!strcmp(variable, "clockUTC")) syncToBrowser((uint32_t)intVal);      
   else if (!strcmp(variable, "timezone")) strcpy(timezone, value);
@@ -391,9 +384,7 @@ void buildJsonString(uint8_t filter) {
   #ifdef INCLUDE_SMTP
       p += sprintf(p, "\"SMTP_Pass\":\"%.*s\",", strlen(SMTP_Pass), FILLSTAR);
   #endif
-  #ifdef INCLUDE_MQTT
       p += sprintf(p, "\"mqtt_user_Pass\":\"%.*s\",", strlen(mqtt_user_Pass), FILLSTAR);
-  #endif
     }
   } else {
     // build json string for requested config group

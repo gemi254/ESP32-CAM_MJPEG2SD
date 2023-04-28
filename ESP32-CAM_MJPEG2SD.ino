@@ -6,7 +6,6 @@
 */
 
 #include "appGlobals.h"
-#include "camera_pins.h"
 
 // camera board selected
 #if defined(CAMERA_MODEL_AI_THINKER)

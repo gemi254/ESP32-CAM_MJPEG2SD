@@ -5,4 +5,4 @@ opencv-python==4.5.5.62
 packaging==21.3
 pyparsing==3.0.7
 scikit-build==0.13.1
-tornado==4.2
+tornado==6.3.3

@@ -7,17 +7,6 @@
 
 #include "appGlobals.h"
 
-// camera board selected
-#if defined(CAMERA_MODEL_AI_THINKER)
-#define CAM_BOARD "CAMERA_MODEL_AI_THINKER"
-#elif defined(CAMERA_MODEL_ESP32S3_EYE)
-#define CAM_BOARD "CAMERA_MODEL_ESP32S3_EYE"
-#elif defined(CAMERA_MODEL_XIAO_ESP32S3)
-#define CAM_BOARD "CAMERA_MODEL_XIAO_ESP32S3"
-#else
-#define CAM_BOARD "OTHER"
-#endif
-
 char camModel[10];
 
 static void prepCam() {
@@ -75,7 +64,7 @@ static void prepCam() {
         retries--;
       }
     } 
-    if (err != ESP_OK) sprintf(startupFailure, "Startup Failure: Camera init error 0x%x", err);
+    if (err != ESP_OK) snprintf(startupFailure, SF_LEN, "Startup Failure: Camera init error 0x%x", err);
     else {
       sensor_t * s = esp_camera_sensor_get();
       switch (s->id.PID) {
@@ -101,8 +90,10 @@ static void prepCam() {
         s->set_brightness(s, 1);//up the brightness just a bit
         s->set_saturation(s, -2);//lower the saturation
       }
-      //drop down frame size for higher initial frame rate
-      s->set_framesize(s, FRAMESIZE_SVGA);
+      // set frame size to configured value
+      char fsizePtr[4];
+      if (retrieveConfigVal("framesize", fsizePtr)) s->set_framesize(s, (framesize_t)(atoi(fsizePtr)));
+      else s->set_framesize(s, FRAMESIZE_SVGA);
   
 #if defined(CAMERA_MODEL_M5STACK_WIDE)
       s->set_vflip(s, 1);
@@ -126,25 +117,25 @@ void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
   
   logSetup();
-  LOG_INF("=============== Starting ===============");
-  if (!psramFound()) sprintf(startupFailure, "Startup Failure: Need PSRAM to be enabled");
+  if (!psramFound()) snprintf(startupFailure, SF_LEN, "Startup Failure: Need PSRAM to be enabled");
+  else {
+    // prep SD card storage
+    startStorage(); 
+    
+    // Load saved user configuration
+    loadConfig();
   
-  // prep SD card storage
-  startStorage();
-
-  // initialise camera
-  prepCam();
+    // initialise camera
+    prepCam();
+  }
   
-  // Load saved user configuration
-  loadConfig();
-
 #ifdef DEV_ONLY
   devSetup();
 #endif
 
   // connect wifi or start config AP if router details not available
   startWifi();
-  
+
   startWebServer();
   if (strlen(startupFailure)) LOG_ERR("%s", startupFailure);
   else {
@@ -154,7 +145,8 @@ void setup() {
     prepPeripherals();
     prepMic(); 
     prepRecording();
-    LOG_INF("Camera model %s on board %s ready @ %uMHz, version %s", camModel, CAM_BOARD, xclkMhz, APP_VER); 
+    prepTelemetry();
+    LOG_INF("Camera model %s on board %s ready @ %uMHz", camModel, CAM_BOARD, xclkMhz); 
     checkMemory();
   } 
 }

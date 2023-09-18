@@ -1,7 +1,7 @@
 
 // Assist setup for new app installations
 // original provided by gemi254
-//
+// 
 // s60sc 2023
 
 #include "appGlobals.h"
@@ -42,6 +42,7 @@ static fs::FS fp = STORAGE;
 
 static bool wgetFile(const char* githubURL, const char* filePath, bool restart = false) {
   // download file from github
+  bool res = false;
   if (fp.exists(filePath)) {
     // if file exists but is empty, delete it to allow re-download
     File f = fp.open(filePath, FILE_READ);
@@ -75,23 +76,22 @@ static bool wgetFile(const char* githubURL, const char* filePath, bool restart =
             if (fileSize <= 0) {
               httpCode = 0;
               LOG_ERR("Download failed: writeToStream");
-            } else LOG_INF("Downloaded %s, size %d bytes", filePath, fileSize);       
+            } else LOG_INF("Downloaded %s, size %s", filePath, fmtSize(fileSize));       
           } else LOG_ERR("Download failed, error: %s", https.errorToString(httpCode).c_str());    
           https.end();
           f.close();
-          if (httpCode == HTTP_CODE_OK) break;
-          else fp.remove(filePath);
+          if (httpCode == HTTP_CODE_OK) {
+            res = true;
+            break;
+          } else fp.remove(filePath);
         }
-      } else {
-        LOG_ERR("Open failed: %s", filePath);
-        return false;
-      }
+      } else LOG_ERR("Open failed: %s", filePath);
     } 
     if (restart) {
       if (loadConfig()) doRestart("config file downloaded");
     }
-  } 
-  return true;
+  } else res = true;
+  return res;
 }
 
 bool checkDataFiles() {
@@ -100,8 +100,9 @@ bool checkDataFiles() {
   bool res = false;
   if (strlen(GITHUB_URL)) {
     res = wgetFile(GITHUB_URL, CONFIG_FILE_PATH, true);
-    if (res) res = wgetFile(GITHUB_URL, INDEX_PAGE_PATH);      
-    if (res) res = appDataFiles();
+    if (res) res = wgetFile(GITHUB_URL, COMMON_JS_PATH); 
+    if (res) res = wgetFile(GITHUB_URL, INDEX_PAGE_PATH); 
+    if (res) res = appDataFiles(); 
   }
   return res;
 }
@@ -169,7 +170,8 @@ const char* otaPage_html = R"~(
       <p id="loaded_n_total"></p>
     </form>
     <script>
-      const otaPort = 82;
+      const webPort = !window.location.port ? "80" : window.location.port;
+      const otaPort = String(+webPort + 1);
       const otaServer = 'http://' + document.location.hostname + ':' + otaPort;
       const $ = document.querySelector.bind(document);
      

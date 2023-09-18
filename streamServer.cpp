@@ -24,7 +24,7 @@ esp_err_t webAppSpecificHandler(httpd_req_t *req, const char* variable, const ch
   if (!strcmp(variable, "sfile")) {
     // get folders / files on SD, save received filename if has required extension
     strcpy(inFileName, value);
-    if (!forceRecord) doPlayback = listDir(inFileName, jsonBuff, JSON_BUFF_LEN, FILE_EXT); // browser control
+    if (!forceRecord) doPlayback = listDir(inFileName, jsonBuff, JSON_BUFF_LEN, AVI_EXT); // browser control
     else strcpy(jsonBuff, "{}");                      
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, jsonBuff, HTTPD_RESP_USE_STRLEN);
@@ -50,7 +50,7 @@ static esp_err_t streamHandler(httpd_req_t* req) {
   uint8_t* jpgBuf = NULL;
   uint32_t startTime = millis();
   uint32_t frameCnt = 0;
-  uint32_t mjpegKB = 0;
+  uint32_t mjpegLen = 0;
   mjpegStruct mjpegData;
 
   // obtain key from query string
@@ -141,13 +141,13 @@ static esp_err_t streamHandler(httpd_req_t* req) {
       xSemaphoreGive(frameMutex);
 #endif       
       fb = NULL;  
-      mjpegKB += jpgLen / 1024;
+      mjpegLen += jpgLen;
       if (res != ESP_OK) break;
     } while (!singleFrame && isStreaming);
     uint32_t mjpegTime = millis() - startTime;
     float mjpegTimeF = float(mjpegTime) / 1000; // secs
     if (singleFrame) LOG_INF("JPEG: %uB in %ums", jpgLen, mjpegTime);
-    else LOG_INF("MJPEG: %u frames, total %ukB in %0.1fs @ %0.1ffps", frameCnt, mjpegKB, mjpegTimeF, (float)(frameCnt) / mjpegTimeF);
+    else LOG_INF("MJPEG: %u frames, total %s in %0.1fs @ %0.1ffps", frameCnt, fmtSize(mjpegLen), mjpegTimeF, (float)(frameCnt) / mjpegTimeF);
   }
   return res;
 }

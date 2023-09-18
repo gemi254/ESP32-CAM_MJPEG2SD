@@ -24,9 +24,6 @@
 
 #include "appGlobals.h"
 
-// following peripheral requires additional libraries: OneWire and DallasTemperature
-//#define INCLUDE_DS18B20 // uncomment to include DS18B20 temp sensor if fitted
-
 // IO Extender use
 bool useIOextender; // true to use IO Extender, otherwise false
 bool useUART0; // true to use UART0, false for UART1
@@ -40,7 +37,7 @@ bool pirUse; // true to use PIR for motion detection
 bool lampUse; // true to use lamp
 uint8_t lampLevel; // brightness of on board lamp led 
 bool lampAuto; // if true in conjunction with pirUse & lampUse, switch on lamp when PIR activated at night
-bool lampNight; // if true, lamp comes on at night
+bool lampNight; // if true, lamp comes on at night (not used)
 int lampType; // how lamp is used
 bool servoUse; // true to use pan / tilt servo control
 bool voltUse; // true to report on ADC pin eg for for battery
@@ -65,7 +62,7 @@ int servoPanPin; // if servoUse is true
 int servoTiltPin;
 
 // ambient / module temperature reading 
-int ds18b20Pin; // if INCLUDE_DS18B20 uncommented
+int ds18b20Pin; // if USE_DS18B20 true
 
 // batt monitoring 
 // only pin 33 can be used on ESP32-Cam module as it is the only available analog pin
@@ -195,7 +192,7 @@ static void prepServos() {
     If DS18B20 is not present, use ESP internal temperature sensor
 */
 
-#ifdef INCLUDE_DS18B20
+#if USE_DS18B20
 #include <OneWire.h> 
 #include <DallasTemperature.h>
 #endif
@@ -215,7 +212,7 @@ TaskHandle_t DS18B20handle = NULL;
 static bool haveDS18B20 = false;
 
 static void DS18B20task(void* pvParameters) {
-#ifdef INCLUDE_DS18B20
+#if USE_DS18B20
   // get current temperature from DS18B20 device
   OneWire oneWire(ds18b20Pin);
   DallasTemperature sensors(&oneWire);
@@ -241,7 +238,7 @@ static void DS18B20task(void* pvParameters) {
 }
 
 void prepTemperature() {
-#if defined(INCLUDE_DS18B20)
+#if USE_DS18B20
   if (ds18b20Pin < EXTPIN) {
     if (ds18b20Pin) {
       size_t stacksize = 1024;
@@ -265,7 +262,7 @@ void prepTemperature() {
 
 float readTemperature(bool isCelsius) {
   // return latest read temperature value in celsius (true) or fahrenheit (false), unless error
-#if defined(INCLUDE_DS18B20)
+#if USE_DS18B20
   // use external DS18B20 sensor if available, else use local value
   externalPeripheral(ds18b20Pin);
 #endif
@@ -300,11 +297,11 @@ float readVoltage()  {
 static void battTask(void* parameter) {
   if (voltInterval < 1) voltInterval = 1;
   while (true) {
-    static bool sentEmailAlert = false;
     // convert analog reading to corrected voltage.  analogReadMilliVolts() not working
     currentVoltage = (float)(smoothAnalog(voltPin)) * 3.3 * voltDivider / pow(2, ADC_BITS);
 
 #ifdef INCLUDE_SMTP
+    static bool sentEmailAlert = false;
     if (currentVoltage < voltLow && !sentEmailAlert) {
       sentEmailAlert = true; // only sent once per esp32 session
       smtpBufferSize = 0; // no attachment
@@ -375,42 +372,56 @@ static void setupLamp() {
 void setLamp(uint8_t lampVal) {
   // control lamp status
   if (!lampUse) lampVal = 0;
-  if (!lampInit) setupLamp();
-  if (lampInit) {
+  if (!externalPeripheral(lampPin, lampVal)) {
+    if (!lampInit) setupLamp();
+    if (lampInit) {
 #if defined(CAMERA_MODEL_AI_THINKER)
-    // set lamp brightness using PWM (0 = off, 15 = max)
-    if (!externalPeripheral(lampPin, lampVal)) ledcWrite(LAMP_LEDC_CHANNEL, lampVal);
-
+      // set lamp brightness using PWM (0 = off, 15 = max)
+     ledcWrite(LAMP_LEDC_CHANNEL, lampVal);
+  
 #elif defined(CAMERA_MODEL_ESP32S3_EYE)
-    // Set white color and apply lampVal (0 = off, 15 = max)
-    uint8_t RGB[3]; // each color is 8 bits
-    lampVal = lampVal == 15 ? 255 : lampVal * 16;
-    for (uint8_t i = 0; i < 3; i++) {
-      RGB[i] = lampVal;
-      // apply WS2812 bit encoding pulse timing per bit
-      for (uint8_t j = 0; j < 8; j++) { 
-        int bit = (i * 8) + j;
-        if ((RGB[i] << j) & 0x80) { // get left most bit first
-          // bit = 1
-          ledData[bit].level0 = 1;
-          ledData[bit].duration0 = 8;
-          ledData[bit].level1 = 0;
-          ledData[bit].duration1 = 4;
-        } else {
-          // bit = 0
-          ledData[bit].level0 = 1;
-          ledData[bit].duration0 = 4;
-          ledData[bit].level1 = 0;
-          ledData[bit].duration1 = 8;
+      // Set white color and apply lampVal (0 = off, 15 = max)
+      uint8_t RGB[3]; // each color is 8 bits
+      lampVal = lampVal == 15 ? 255 : lampVal * 16;
+      for (uint8_t i = 0; i < 3; i++) {
+        RGB[i] = lampVal;
+        // apply WS2812 bit encoding pulse timing per bit
+        for (uint8_t j = 0; j < 8; j++) { 
+          int bit = (i * 8) + j;
+          if ((RGB[i] << j) & 0x80) { // get left most bit first
+            // bit = 1
+            ledData[bit].level0 = 1;
+            ledData[bit].duration0 = 8;
+            ledData[bit].level1 = 0;
+            ledData[bit].duration1 = 4;
+          } else {
+            // bit = 0
+            ledData[bit].level0 = 1;
+            ledData[bit].duration0 = 4;
+            ledData[bit].level1 = 0;
+            ledData[bit].duration1 = 8;
+          }
         }
       }
-    }
-    rmtWrite(rmtWS2812, ledData, RGB_BITS);
+      rmtWrite(rmtWS2812, ledData, RGB_BITS);
 #else
-    // other board
-    // set lamp brightness using PWM (0 = off, 15 = max)
-    if (!externalPeripheral(lampPin, lampVal)) ledcWrite(LAMP_LEDC_CHANNEL, lampVal);
+      // other board
+      // set lamp brightness using PWM (0 = off, 15 = max)
+      ledcWrite(LAMP_LEDC_CHANNEL, lampVal);
 #endif
+    }
+  }
+}
+
+
+void twinkleLed(uint8_t ledPin, uint16_t interval, uint8_t blinks) {
+  // twinkle led, for given number of blinks, 
+  //  with given interval in ms between blinks
+  bool ledState = true;
+  for (int i=0; i<blinks*2; i++) {
+    digitalWrite(ledPin, ledState);
+    delay(interval);
+    ledState = !ledState;
   }
 }
 
@@ -421,6 +432,7 @@ void setPeripheralResponse(const byte pinNum, const uint32_t responseData) {
   // callback for Client uart task 
   // updates peripheral stored input value when response received
   // map received pin number to peripheral
+  LOG_DBG("Pin %d, data %u", pinNum, responseData);
   if (pinNum == pirPin) 
     memcpy(&pirVal, &responseData, sizeof(pirVal));  // set PIR status
   else if (pinNum == voltPin)
@@ -437,6 +449,7 @@ uint32_t usePeripheral(const byte pinNum, const uint32_t receivedData) {
   // callback for IO Extender to interact with peripherals
   uint32_t responseData = 0;
   int ival;
+  LOG_DBG("Pin %d, data %u", pinNum, receivedData);
   // map received pin number to peripheral
   if (pinNum == servoTiltPin) {
     // send tilt angle to servo

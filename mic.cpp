@@ -142,7 +142,7 @@ void startAudio() {
   // combined into AVI file as PCM channel on FTP upload or browser download
   // so can be read by media players
   if (micUse && micGain) {
-    wavFile = SD_MMC.open(WAVTEMP, FILE_WRITE);
+    wavFile = STORAGE.open(WAVTEMP, FILE_WRITE);
     wavFile.write(wavHeader, WAV_HEADER_LEN); 
     wakeTask(micHandle);
   } 
@@ -166,7 +166,7 @@ void finishAudio(bool isValid) {
       wavFile.write(wavHeader, WAV_HEADER_LEN); // overwrite default header
       wavFile.close();  
       LOG_INF("Captured %d audio samples with gain factor %i", totalSamples, micGain);
-      LOG_INF("Saved %ukB to SD for %s", (dataBytes + WAV_HEADER_LEN) / 1024, WAVTEMP);
+      LOG_INF("Saved %s to SD for %s", fmtSize(dataBytes + WAV_HEADER_LEN), WAVTEMP);
     }
   }
 }

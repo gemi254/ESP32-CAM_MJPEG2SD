@@ -1,7 +1,7 @@
 // Provides web server for user control of app
 // httpServer handles browser http requests and websocket interaction 
 // otaServer does file uploads
-//
+// 
 // s60sc 2022
 
 #include "appGlobals.h"
@@ -44,18 +44,20 @@ static bool sendChunks(File df, httpd_req_t *req) {
 static esp_err_t fileHandler(httpd_req_t* req, bool download) {
   // send file contents to browser
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+  if (!strcmp(inFileName, LOG_FILE_PATH)) flush_log(false);
   File df = fp.open(inFileName);
   if (!df) {
     df.close();
-    const char* resp_str = "File does not exist or cannot be opened";
-    LOG_ERR("%s: %s", resp_str, inFileName);
+    char errMsg[200];
+    snprintf(errMsg, 200, "File does not exist or cannot be opened: %s", inFileName);
+    LOG_ERR("%s", errMsg);
     httpd_resp_set_status(req, HTTPD_400);
-    httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send(req, errMsg, HTTPD_RESP_USE_STRLEN);
     return ESP_FAIL;
   } 
   if (download) {  
     // download file as attachment, required file name in inFileName
-    LOG_INF("Download file: %s, size: %0.1fMB", inFileName, (float)(df.size()/ONEMEG));
+    LOG_INF("Download file: %s, size: %s", inFileName, fmtSize(df.size()));
     httpd_resp_set_type(req, "application/octet");
     char contentDisp[FILE_NAME_LEN + 50];
     char contentLength[10];
@@ -201,7 +203,12 @@ static esp_err_t controlHandler(httpd_req_t *req) {
     updateStatus(variable, value);
     webAppSpecificHandler(req, variable, value); 
     // handler for downloading selected file, required file name in inFileName
-    if (!strcmp(variable, "download") && atoi(value) == 1) return fileHandler(req, true);
+    if (!strcmp(variable, "download") && atoi(value) == 1) {
+#ifdef ISCAM
+      if (whichExt) changeExtension(inFileName, CSV_EXT);
+#endif
+      return fileHandler(req, true);
+    }
   }
   httpd_resp_send(req, NULL, 0); 
   return ESP_OK;
@@ -268,7 +275,7 @@ static void sendCrossOriginHeader() {
   // prevent CORS from blocking request
   otaServer.sendHeader("Access-Control-Allow-Origin", "*");
   otaServer.sendHeader("Access-Control-Max-Age", "600");
-  otaServer.sendHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS");
+  otaServer.sendHeader("Access-Control-Allow-Methods", "POST,GET,HEAD,OPTIONS");
   otaServer.sendHeader("Access-Control-Allow-Headers", "*");
   otaServer.send(204);
 };
@@ -390,7 +397,7 @@ static void uploadHandler() {
       if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd)) Update.printError(Serial);
     } else {
       // replace relevant data file on storage
-      char replaceFile[20] = DATA_DIR;
+      char replaceFile[FILE_NAME_LEN] = DATA_DIR;
       strcat(replaceFile, "/");
       strcat(replaceFile, filename.c_str());
       LOG_INF("Data file update using %s", replaceFile);
@@ -405,7 +412,7 @@ static void uploadHandler() {
     if (cmd == DATA_UPDATE) {
       // web page update
       if (df.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        LOG_ERR("Failed to save %s on Storage", filename.c_str());
+        LOG_ERR("Failed to save %s on Storage", df.name());
         return;
       }
     } else {

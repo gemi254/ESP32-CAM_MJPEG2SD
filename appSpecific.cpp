@@ -1,8 +1,11 @@
-// mjpeg2sd specific config functions
+// mjpeg2sd specific functions
 //
-// s60sc 2022
+// s60sc 2022 
 
 #include "appGlobals.h"
+
+
+/************************ webServer callbacks *************************/
 
 bool updateAppStatus(const char* variable, const char* value) {
   // update vars from browser input
@@ -10,7 +13,8 @@ bool updateAppStatus(const char* variable, const char* value) {
   sensor_t* s = esp_camera_sensor_get();
   int intVal = atoi(value);
   float fltVal = atof(value);
-  if(!strcmp(variable, "minf")) minSeconds = intVal; 
+  if (!strcmp(variable, "custom")) return res;
+  else if(!strcmp(variable, "minf")) minSeconds = intVal; 
   else if(!strcmp(variable, "stopStream")) stopPlaying();
   else if(!strcmp(variable, "motionVal")) motionVal = intVal;
   else if(!strcmp(variable, "moveStartChecks")) moveStartChecks = intVal;
@@ -36,15 +40,14 @@ bool updateAppStatus(const char* variable, const char* value) {
   else if(!strcmp(variable, "tlPlaybackFPS")) tlPlaybackFPS = intVal;  
   else if(!strcmp(variable, "lswitch")) nightSwitch = intVal;
   else if(!strcmp(variable, "micGain")) micGain = intVal;
-  else if(!strcmp(variable, "autoUpload")) autoUpload = intVal;
   else if(!strcmp(variable, "upload")) ftpFileOrFolder(value);  
-  else if(!strcmp(variable, "uploadMove")) ftpFileOrFolder(value, true);  
+  else if(!strcmp(variable, "whichExt")) whichExt = (bool)intVal;
   else if(!strcmp(variable, "delete")) {
     stopPlayback = true;
     deleteFolderOrFile(value);
   }
   else if(!strcmp(variable, "record")) doRecording = (intVal) ? true : false;   
-  else if(!strcmp(variable, "forceRecord")) forceRecord = (intVal) ? true : false;                                       
+  else if(!strcmp(variable, "forceRecord")) forceRecord = (intVal) ? true : false; 
   else if(!strcmp(variable, "dbgMotion")) {
     // only enable show motion if motion detect enabled
     dbgMotion = (intVal && useMotion) ? true : false;
@@ -68,7 +71,7 @@ bool updateAppStatus(const char* variable, const char* value) {
     lampType = intVal;
     lampAuto = lampNight = false;
     if (lampType == 1) lampAuto = true;
-    if (lampType == 2) lampNight = true;
+    //if (lampType == 2) lampNight = true;
     if (!lampType) setLamp(lampLevel); // manual
     else setLamp(0); 
   }
@@ -96,7 +99,9 @@ bool updateAppStatus(const char* variable, const char* value) {
   else if(!strcmp(variable, "camTilt")) setCamTilt(intVal);
   else if(!strcmp(variable, "wakeUse")) wakeUse = (bool)intVal;
   else if(!strcmp(variable, "wakePin")) wakePin = intVal;
-  
+  else if(!strcmp(variable, "teleUse")) teleUse = (bool)intVal;
+  else if(!strcmp(variable, "teleInterval")) teleInterval = intVal;
+    
   // camera settings
   else if(!strcmp(variable, "xclkMhz")) xclkMhz = intVal;
   else if (s) {
@@ -186,7 +191,7 @@ void buildAppJsonString(bool filter) {
     forcePlayback = false;
     p += sprintf(p, "\"forcePlayback\":0,");  
   }
-  p += sprintf(p, "\"showRecord\":%u,", (uint8_t)isCapturing);
+  p += sprintf(p, "\"showRecord\":%u,", (uint8_t)((isCapturing && doRecording) || forceRecord));
   p += sprintf(p, "\"camModel\":\"%s\",", camModel); 
   
   // Extend info
@@ -198,15 +203,12 @@ void buildAppJsonString(bool filter) {
       else if (cardType == CARD_SD) p += sprintf(p, "\"card\":\"%s\",", "SDSC");
       else if (cardType == CARD_SDHC) p += sprintf(p, "\"card\":\"%s\",", "SDHC"); 
     }
-    uint64_t cardSize = SD_MMC.cardSize() / ONEMEG;
-    uint64_t totBytes = SD_MMC.totalBytes() / ONEMEG;
-    uint64_t useBytes = SD_MMC.usedBytes() / ONEMEG;
-    p += sprintf(p, "\"card_size\":\"%llu MB\",", cardSize);
-    p += sprintf(p, "\"used_bytes\":\"%llu MB\",", useBytes);
-    p += sprintf(p, "\"free_bytes\":\"%llu MB\",", totBytes - useBytes);
-    p += sprintf(p, "\"total_bytes\":\"%llu MB\",", totBytes);
+    p += sprintf(p, "\"card_size\":\"%s\",", fmtSize(SD_MMC.cardSize()));
+    p += sprintf(p, "\"used_bytes\":\"%s\",", fmtSize(SD_MMC.usedBytes()));
+    p += sprintf(p, "\"free_bytes\":\"%s\",", fmtSize(SD_MMC.totalBytes() - SD_MMC.usedBytes()));
+    p += sprintf(p, "\"total_bytes\":\"%s\",", fmtSize(SD_MMC.totalBytes()));
   }
-  p += sprintf(p, "\"free_psram\":\"%u KB\",", (ESP.getFreePsram() / 1024));     
+  p += sprintf(p, "\"free_psram\":\"%s\",", fmtSize(ESP.getFreePsram()));     
   p += sprintf(p, "\"progressBar\":%u,", percentLoaded);  
   if (percentLoaded == 100) percentLoaded = 0;
   //p += sprintf(p, "\"vcc\":\"%i V\",", ESP.getVcc() / 1023.0F; ); 
@@ -219,6 +221,7 @@ bool appDataFiles() {
 }
 
 void doAppPing() {
+  if (IP_EMAIL) if (checkAlarm(1)) getExtIP();
   doIOExtPing();
   // check for night time actions
   if (isNight(nightSwitch)) {
@@ -230,6 +233,6 @@ void doAppPing() {
      digitalWrite(PWDN_GPIO_NUM, 1); // power down camera
      goToSleep(wakePin, true);
     }
-    if (lampNight) setLamp(lampLevel);
-  } else if (lampNight) setLamp(0);
+//    if (lampNight) setLamp(lampLevel);
+  } // else if (lampNight) setLamp(0);
 }

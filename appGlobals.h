@@ -31,59 +31,46 @@
 //#define CAMERA_MODEL_ESP32_CAM_BOARD
 //#define CAMERA_MODEL_ESP32S2_CAM_BOARD
 //#define CAMERA_MODEL_ESP32S3_CAM_LCD
-
-#include "camera_pins.h"
-
-#define ALLOW_SPACES false // set true to allow whitespace in configs.txt key values
-
-// web server ports. If changed here, also need to change in mjpeg2sd.htm
-#define WEB_PORT 80 // app control
-#define STREAM_PORT 81 // camera images
-#define OTA_PORT 82 // OTA update
+//#define CAMERA_MODEL_TTGO_T_CAMERA_PLUS
 
 /**************************************************************************/
 
-/************************ Fixed defines leave as is ***********************/ 
+#define USE_DS18B20 false  // if true, requires additional libraries: OneWire and DallasTemperature
+
+#define ALLOW_SPACES false // set true to allow whitespace in configs.txt key values
+
+// web server ports
+#define WEB_PORT 80 // app control
+#define OTA_PORT (WEB_PORT + 1) // OTA update
+#define STREAM_PORT (WEB_PORT + 2) // camera images
+
+/*********************** Fixed defines leave as is ***********************/ 
 /** Do not change anything below here unless you know what you are doing **/
 
 //#define DEV_ONLY // leave commented out
+#ifdef DEV_ONLY 
+//#define SIDE_ALARM // uncomment if used for side alarm
+#endif 
 #define STATIC_IP_OCTAL "133" // dev only
 #define CHECK_MEM false // leave as false
-#define FLUSH_DELAY 0 // for debugging crashes
+#define FLUSH_DELAY 200 // for debugging crashes
  
 #define APP_NAME "ESP-CAM_MJPEG" // max 15 chars
-#define APP_VER "8.7"
+#define APP_VER "8.8"
 
 #define MAX_CLIENTS 2 // allowing too many concurrent web clients can cause errors
-#define DATA_DIR "/data"
-#define HTML_EXT ".htm"
-#define TEXT_EXT ".txt"
-#define JS_EXT ".js"
-#define CSS_EXT ".css"
-#define ICO_EXT ".ico"
-#define SVG_EXT ".svg"
 #define INDEX_PAGE_PATH DATA_DIR "/MJPEG2SD" HTML_EXT
-#define CONFIG_FILE_PATH DATA_DIR "/configs" TEXT_EXT
-#define LOG_FILE_PATH DATA_DIR "/log" TEXT_EXT
-#define OTA_FILE_PATH DATA_DIR "/OTA" HTML_EXT         
 #define FILE_NAME_LEN 64
-#define ONEMEG (1024 * 1024)
-#define MAX_PWD_LEN 64
 #define JSON_BUFF_LEN (32 * 1024) // set big enough to hold all file names in a folder
 #define MAX_CONFIGS 130 // > number of entries in configs.txt
+
+#ifdef SIDE_ALARM
+#define STORAGE LittleFS
+#define GITHUB_URL ""
+#else
+#define STORAGE SD_MMC
 #define GITHUB_URL "https://raw.githubusercontent.com/s60sc/ESP32-CAM_MJPEG2SD/master"
-
-#define FILE_EXT "avi"
-#define BOUNDARY_VAL "123456789000000000000987654321"
-#define AVI_HEADER_LEN 310 // AVI header length
-#define CHUNK_HDR 8 // bytes per jpeg hdr in AVI 
-#define WAVTEMP "/current.wav"
-#define AVITEMP "/current.avi"
-#define TLTEMP "/current.tl"
-
-#define FILLSTAR "****************************************************************"
-#define DELIM '~'
-#define STORAGE SD_MMC // one of: SPIFFS LittleFS SD_MMC 
+#endif
 #define RAMSIZE (1024 * 8) // set this to multiple of SD card sector size (512 or 1024 bytes)
 #define CHUNKSIZE (1024 * 4)
 #define RAM_LOG_LEN 5000 // size of ram stored system message log in bytes
@@ -92,26 +79,46 @@
 #define INCLUDE_MQTT
 #define INCLUDE_SD
 #define INCLUDE_WEBSOCKET_SERVER
+// set true for emailing external ip changes
+#define IP_EMAIL false
 
-#define IS_IO_EXTENDER false // must be false unless IO_Extender
+#define IS_IO_EXTENDER false // must be false except for IO_Extender
 #define EXTPIN 100
 
+// to determine if newer data files need to be loaded
+#define CFG_VER 2
+#define HTM_VER 4
+#define JS_VER 1
+
+#define AVI_EXT "avi"
+#define CSV_EXT "csv"
+#define AVI_HEADER_LEN 310 // AVI header length
+#define CHUNK_HDR 8 // bytes per jpeg hdr in AVI 
+#define WAVTEMP "/current.wav"
+#define AVITEMP "/current.avi"
+#define TLTEMP "/current.tl"
+#define TELETEMP "/current.csv"
+
+// non default pins configured for SD card on given camera board
 #if defined(CAMERA_MODEL_ESP32S3_EYE)
-// pins configured for SD card on this camera board
 #define SD_MMC_CLK 39 
 #define SD_MMC_CMD 38
 #define SD_MMC_D0 40
 #elif defined(CAMERA_MODEL_XIAO_ESP32S3)
-// pins configured for SD card on this camera board
 #define SD_MMC_CLK 7 
 #define SD_MMC_CMD 9
 #define SD_MMC_D0 8
+#elif defined(CAMERA_MODEL_TTGO_T_CAMERA_PLUS)
+#define SD_MMC_CLK 21 // SCLK
+#define SD_MMC_CMD 19 // MOSI
+#define SD_MMC_D0 22  // MISO
 #endif
 
 
 /******************** Libraries *******************/
 
 #include "esp_camera.h"
+#include "camera_pins.h"
 
 /******************** Function declarations *******************/
 
@@ -129,6 +136,7 @@ struct fnameStruct {
 
 
 // global app specific functions
+
 void buildAviHdr(uint8_t FPS, uint8_t frameType, uint16_t frameCnt, bool isTL = false);
 void buildAviIdx(size_t dataSize, bool isVid = true, bool isTL = false);
 bool checkMotion(camera_fb_t* fb, bool motionStatus);
@@ -145,6 +153,7 @@ bool isNight(uint8_t nightSwitch);
 void openSDfile(const char* streamFile);
 void prepAviIndex(bool isTL = false);
 bool prepRecording();
+void prepTelemetry();
 void prepMic();
 void setCamPan(int panVal);
 void setCamTilt(int tiltVal);
@@ -153,7 +162,9 @@ uint8_t setFPSlookup(uint8_t val);
 void setLamp(uint8_t lampVal);
 void startAudio();
 void startStreamServer();
+void startTelemetry();
 void stopPlaying();
+void stopTelemetry(const char* fileName);
 size_t writeAviIndex(byte* clientBuf, size_t buffSize, bool isTL = false);
 size_t writeWavFile(byte* clientBuf, size_t buffSize);
 
@@ -235,12 +246,14 @@ extern int pirPin; // if usePir is true
 extern bool pirVal;
 extern int lampPin; // if useLamp is true
 extern int wakePin; // if wakeUse is true
+extern bool teleUse;
+extern int teleInterval;
 
 // Pan / Tilt Servos 
 extern int servoPanPin; // if useServos is true
 extern int servoTiltPin;
 // ambient / module temperature reading 
-extern int ds18b20Pin; // if INCLUDE_DS18B20 uncommented
+extern int ds18b20Pin; // if USE_DS18B20 true
 // batt monitoring 
 extern int voltPin; 
 
@@ -268,6 +281,7 @@ extern const uint32_t WAV_HEADER_LEN;
 // task handling
 extern TaskHandle_t playbackHandle;
 extern TaskHandle_t DS18B20handle;
+extern TaskHandle_t telemetryHandle;
 extern TaskHandle_t servoHandle;
 extern TaskHandle_t uartClientHandle;
 extern TaskHandle_t emailHandle;

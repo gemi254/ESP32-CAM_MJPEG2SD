@@ -1,24 +1,25 @@
 // Store SD card or SPIFFS content on a remote server using FTP
-//
+// 
 // s60sc 2022, based on code contributed by gemi254
 
 #include "appGlobals.h"
 
 // Ftp server params, setup via web page
-char ftp_server[32];
+char ftp_server[MAX_HOST_LEN];
 uint16_t ftp_port = 21;
-char ftp_user[32];
+char ftp_user[MAX_HOST_LEN];
 char FTP_Pass[MAX_PWD_LEN];
-char ftp_wd[64]; 
+char ftp_wd[FILE_NAME_LEN]; 
 uint8_t percentLoaded = 0;
 
 // FTP control
 static char rspBuf[256]; // Ftp response buffer
-static char respCodeRx[4]; // ftp response code                        
+static char respCodeRx[4]; // ftp response code      
 TaskHandle_t ftpHandle = NULL;
 static char storedPathName[FILE_NAME_LEN];
 static bool uploadInProgress = false;
-static bool deleteAfter = false;
+bool deleteAfter = false; // auto delete after upload
+bool autoUpload = false;  // Automatically upload every created file to remote ftp server
 static fs::FS fp = STORAGE;
 #define NO_CHECK "999"
 
@@ -84,6 +85,7 @@ static bool createFtpFolder(const char* folderName) {
   if (strcmp(respCodeRx, "550") == 0) {
     // non existent folder, create it
     if (!sendFtpCommand("MKD ", folderName, "257")) return false;
+    //sendFtpCommand("SITE CHMOD 755 ", folderName, "200", "550"); // unix only
     if (!sendFtpCommand("CWD ", folderName, "250")) return false;         
   }
   return true;
@@ -125,12 +127,17 @@ static bool openDataPort() {
 }
 
 static bool ftpStoreFile(File &fh) {
-  // Upload individual file to current folder, overwrite any existing file  
-  if (strstr(fh.name(), FILE_EXT) == NULL) return false; // folder, or not valid file type    
+  // Upload individual file to current folder, overwrite any existing file 
+  // reject if folder, or not valid file type    
+#ifdef ISCAM
+  if (strstr(fh.name(), AVI_EXT) == NULL && strstr(fh.name(), CSV_EXT) == NULL) return false; 
+#else
+  if (strstr(fh.name(), FILE_EXT) == NULL) return false; 
+#endif
   char ftpSaveName[FILE_NAME_LEN];
   strcpy(ftpSaveName, fh.name());
   size_t fileSize = fh.size();
-  LOG_INF("Upload file: %s, size: %0.1fMB", ftpSaveName, (float)(fileSize)/ONEMEG);    
+  LOG_INF("Upload file: %s, size: %s", ftpSaveName, fmtSize(fileSize));    
 
   // open data connection
   openDataPort();
@@ -155,9 +162,13 @@ static bool ftpStoreFile(File &fh) {
   } while (readLen > 0);
   dclient.stop();
   percentLoaded = 100;
-  if (sendFtpCommand("", "", "226")) LOG_ALT("Uploaded %0.1fMB in %u sec", (float)(writeBytes) / ONEMEG, (millis() - uploadStart) / 1000); 
+  bool res = sendFtpCommand("", "", "226");
+  if (res) {
+    LOG_ALT("Uploaded %s in %u sec", fmtSize(writeBytes), (millis() - uploadStart) / 1000);
+    //sendFtpCommand("SITE CHMOD 644 ", ftpSaveName, "200", "550"); // unix only
+  }
   else LOG_ERR("File transfer not successful");
-  return true;
+  return res;
 }
 
 static bool uploadFolderOrFileFtp() {
@@ -177,12 +188,25 @@ static bool uploadFolderOrFileFtp() {
     return false;
   }  
 
-  bool res;
+  bool res = false;
   const int saveRefreshVal = refreshVal;
   refreshVal = 1;
   if (!root.isDirectory()) {
     // Upload a single file 
     if (getFolderName(root.path())) res = ftpStoreFile(root); 
+#ifdef ISCAM
+    // upload corresponding csv file if exists
+    if (res) {
+      char ftpSaveName[FILE_NAME_LEN];
+      strcpy(ftpSaveName, root.path());
+      changeExtension(ftpSaveName, CSV_EXT);
+      if (fp.exists(ftpSaveName)) {
+        File csv = fp.open(ftpSaveName);
+        res = ftpStoreFile(csv);
+        csv.close();
+      }
+    }
+#endif
   } else {  
     // Upload a whole folder, file by file
     LOG_INF("Uploading folder: ", root.name()); 
@@ -206,7 +230,9 @@ static bool uploadFolderOrFileFtp() {
 
 static void FTPtask(void* parameter) {
   // process an FTP request
+#ifdef ISCAM
   doPlayback = false; // close any current playback
+#endif
   bool res = uploadFolderOrFileFtp();
   // Disconnect from ftp server
   client.println("QUIT");
@@ -217,13 +243,12 @@ static void FTPtask(void* parameter) {
   vTaskDelete(NULL);
 }
 
-bool ftpFileOrFolder(const char* fileFolder, bool _deleteAfter) {
+bool ftpFileOrFolder(const char* fileFolder) {
   // called from other functions to commence FTP upload
   setFolderName(fileFolder, storedPathName);
   if (!uploadInProgress) {
     uploadInProgress = true;
-    deleteAfter = _deleteAfter;
-    xTaskCreate(&FTPtask, "FTPtask", 1024 * 3, NULL, 1, &ftpHandle);    
+    xTaskCreate(&FTPtask, "FTPtask", 1024 * 4, NULL, 1, &ftpHandle);    
     return true;
   } else LOG_WRN("Unable to upload %s as another upload in progress", storedPathName);
   return false;

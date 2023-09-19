@@ -199,7 +199,7 @@ void startSocketStream(void) {
   LOG_INF("Sending websocket headers");
   for (int tries = 3; tries >= 0; tries--) {
     if (esp_websocket_client_is_connected(sclient)) {
-      buildJsonString(false);
+      buildJsonString(1);
       //Send header
       socketSendToServerData(jsonBuff);
       //Resume
@@ -291,7 +291,7 @@ void startWebsocketClient(void)
   esp_websocket_client_start(sclient);
   //Create a socket stream task
   remoteStreamEnabled = true;
-  BaseType_t xReturned = xTaskCreate(&socketTask, "socketTask", 4096 * 2, NULL, 1, &socketTaskHandle);
+  BaseType_t xReturned = xTaskCreate(&socketTask, "socketTask", 1024 * 4, NULL, 1, &socketTaskHandle);
   LOG_INF("Created task: %d", xReturned );
 }
 

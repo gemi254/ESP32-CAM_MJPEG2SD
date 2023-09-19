@@ -224,8 +224,7 @@ static void statusCheck() {
 #ifdef INCLUDE_WEBSOCKET_SERVER
   if (doRemoteStream) startWebsocketClient();
 #endif
-  doAppPing();
-#endif
+
 }
 
 static void pingSuccess(esp_ping_handle_t hdl, void *args) {

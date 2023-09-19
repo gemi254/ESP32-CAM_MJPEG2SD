@@ -277,7 +277,7 @@ void updateStatus(const char* variable, const char* _value) {
     snprintf(buff, FILE_NAME_LEN * 2, "%s=%s",variable, value);
     mqttPublish(buff);
   }
-
+#endif
 #ifdef INCLUDE_WEBSOCKET_SERVER
   socketSendToServer("%s=%s",variable, value );
 #endif
@@ -404,8 +404,11 @@ void buildJsonString(uint8_t filter) {
     p += sprintf(p, "\"up_time\":\"%s\",", timeBuff);   
     p += sprintf(p, "\"free_heap\":\"%s\",", fmtSize(ESP.getFreeHeap()));    
     p += sprintf(p, "\"wifi_rssi\":\"%i dBm\",", WiFi.RSSI() );  
-    p += sprintf(p, "\"fw_version\":\"%s\",", APP_VER); 
-
+    p += sprintf(p, "\"fw_version\":\"%s\",", APP_VER);
+    #ifdef INCLUDE_WEBSOCKET_SERVER
+    p += sprintf(p, "\"hostName\":\"%s\",", hostName); 
+    p += sprintf(p, "\"framesize\":\"%i\",", fsizePtr); 
+    #endif
     if (!filter) {
       // populate first part of json string from config vect
       for (const auto& row : configs) 

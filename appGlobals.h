@@ -77,8 +77,8 @@
 #define INCLUDE_FTP 
 #define INCLUDE_SMTP
 #define INCLUDE_MQTT
-#define INCLUDE_SD
 #define INCLUDE_WEBSOCKET_SERVER
+#define ISCAM // cam specific code in generics
 // set true for emailing external ip changes
 #define IP_EMAIL false
 

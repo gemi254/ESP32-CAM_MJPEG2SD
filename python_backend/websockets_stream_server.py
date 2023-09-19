@@ -19,6 +19,7 @@ import datetime
 import cv2
 import os
 import uuid
+import sys
 clients = {}
 
 bytes = b''
@@ -192,7 +193,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     info['msg'] = 'info'
                     WSControlHandler.send_message(json.dumps(info))    
                 else: #Plain text
-                    print(tmS,'Received msg:', msg[1],'from:',self.id);
+                    print(tmS,'Received msg:', msg[1],' from:',self.id);
                     #Broadcase message
                     info = json.loads("{}");
                     info['timestamp']=str(tm)
@@ -207,7 +208,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     self.tmr = time.time() 
                     self.ctrlMsg = msg[1]
             else: #Unformated text
-                print(tmS,'Received text:', message,'from:',self.id);
+                print(tmS,'Received text:', message,' from:',self.id);
         else : #raw image data
             try: 
                 #Extract timestamp
@@ -217,7 +218,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     message, dtype=np.uint8), cv2.IMREAD_COLOR)
                 self.frames = self.frames + 1
                 if time.time() - self.frames_timestamp > 1:
-                    #print("Rcv Fps: ", self.frames)
+                    print("Rcv Fps: ", self.frames,' from:',self.id)
                     self.fps = self.frames
                     self.frames=0;
                     self.frames_timestamp = time.time()      
@@ -375,10 +376,10 @@ if __name__ == "__main__":
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(myPort)
     myIP = socket.gethostbyname(socket.gethostname())
-    myIP = '10.0.0.8'
-    
-    print('*** Websocket Server Started at %s, %s:%s ***' % (socket.gethostname(), myIP,myPort))
+    #myIP = '10.0.0.8'    
+    print('Python: ', sys.version)
     print('tornado: ',tornado.version)
-    #print('asyncio: ',asyncio.version)
     print('numpy: ',np.__version__)
+    print('*** Websocket Server Started at %s, %s:%s ***' % (socket.gethostname(), myIP,myPort))
+
     tornado.ioloop.IOLoop.current().start()
